@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ប្រព័ន្ធបង្វិលតុធ្វើការបុគ្គលិក</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Kantumruy Pro) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tgBg: 'var(--tg-theme-bg-color, #f8fafc)',
+                        tgSecBg: 'var(--tg-theme-secondary-bg-color, #ffffff)',
+                        tgText: 'var(--tg-theme-text-color, #0f172a)',
+                        tgHint: 'var(--tg-theme-hint-color, #64748b)',
+                        tgButton: 'var(--tg-theme-button-color, #2563eb)',
+                        tgButtonText: 'var(--tg-theme-button-text-color, #ffffff)',
+                    },
+                    fontFamily: {
+                        khmer: ['Kantumruy Pro', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Kantumruy Pro', sans-serif;
+            background-color: var(--tg-theme-bg-color, #f8fafc);
+            color: var(--tg-theme-text-color, #0f172a);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, #ffffff);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen pb-20 select-none">
+
+    <!-- Top Header -->
+    <header class="card sticky top-0 z-20 shadow-sm border-b border-slate-200/80 px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-3 space-x-reverse">
+            <div class="w-10 h-10 rounded-2xl bg-blue-600/10 text-blue-600 flex items-center justify-center font-bold text-lg shadow-inner">
+                <i class="fa-solid fa-chair text-blue-600"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base leading-tight">បង្វិលតុធ្វើការ (៧ តុ)</h1>
+                <p id="user-greeting" class="text-[11px] text-slate-500">ស្វាគមន៍មកកាន់ Mini App</p>
+            </div>
+        </div>
+        <button onclick="shareTodaySchedule()" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 font-medium transition shadow-sm">
+            <i class="fa-solid fa-share-nodes"></i>
+            <span>ចែករំលែក</span>
+        </button>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 p-4 max-w-md mx-auto w-full space-y-4">
+
+        <!-- Date Selector Bar -->
+        <div class="card p-3 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+            <button onclick="changeDate(-1)" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200 active:scale-95 transition flex items-center justify-center">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <div class="text-center">
+                <input type="date" id="selected-date" onchange="onDateInputChange()" class="bg-transparent font-semibold text-sm text-center focus:outline-none cursor-pointer">
+                <div id="date-khmer-text" class="text-[11px] text-blue-600 font-medium mt-0.5">ថ្ងៃនេះ</div>
+            </div>
+            <button onclick="changeDate(1)" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200 active:scale-95 transition flex items-center justify-center">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- TAB 1: DAILY DESK ROTATION GRID -->
+        <section id="tab-today" class="tab-content space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-square-poll-vertical text-blue-600"></i>
+                    តារាងបែងចែកតុប្រចាំថ្ងៃ
+                </h2>
+                <button onclick="resetToToday()" class="text-xs text-blue-600 font-medium hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                    ត្រឡប់មកថ្ងៃនេះ
+                </button>
+            </div>
+
+            <!-- Desks Grid Layout -->
+            <div id="desks-container" class="grid grid-cols-1 gap-3">
+                <!-- Dynamically populated 7 Desks Cards -->
+            </div>
+        </section>
+
+        <!-- TAB 2: WEEKLY SCHEDULE TABLE -->
+        <section id="tab-weekly" class="tab-content hidden space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-calendar-week text-blue-600"></i>
+                    កាលវិភាគ ៧ ថ្ងៃក្នុងសប្ដាហ៍
+                </h2>
+            </div>
+
+            <div class="card rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold">
+                            <tr>
+                                <th class="p-2.5 whitespace-nowrap">កាលបរិច្ឆេទ</th>
+                                <th class="p-2.5 text-center">តុ ១</th>
+                                <th class="p-2.5 text-center">តុ ២</th>
+                                <th class="p-2.5 text-center">តុ ៣</th>
+                                <th class="p-2.5 text-center">តុ ៤</th>
+                                <th class="p-2.5 text-center">តុ ៥</th>
+                                <th class="p-2.5 text-center">តុ ៦</th>
+                                <th class="p-2.5 text-center">តុ ៧</th>
+                            </tr>
+                        </thead>
+                        <tbody id="weekly-table-body" class="divide-y divide-slate-100">
+                            <!-- Dynamically populated 7 days rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: MANAGE STAFF NAMES -->
+        <section id="tab-staff" class="tab-content hidden space-y-3">
+            <div class="card p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-user-pen text-blue-600"></i>
+                        កែប្រែឈ្មោះបុគ្គលិកទាំង ៧ នាក់
+                    </h3>
+                </div>
+                <p class="text-xs text-slate-500">អ្នកអាចបញ្ចូលឈ្មោះពិតរបស់បុគ្គលិករក្សាទុកក្នុងប្រព័ន្ធ៖</p>
+
+                <form id="staff-form" onsubmit="saveStaffNames(event)" class="space-y-2.5">
+                    <div id="staff-inputs-container" class="space-y-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
+                        <!-- Dynamically generated 7 inputs -->
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-3 rounded-xl transition shadow-sm active:scale-98">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> រក្សាទុកឈ្មោះថ្មី
+                    </button>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="card fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200/80 px-6 py-2 flex justify-around items-center max-w-md mx-auto">
+        <button onclick="switchTab('today')" id="nav-today" class="nav-btn flex flex-col items-center gap-1 text-blue-600 transition">
+            <i class="fa-solid fa-chair text-lg"></i>
+            <span class="text-[10px] font-medium">តុថ្ងៃនេះ</span>
+        </button>
+        <button onclick="switchTab('weekly')" id="nav-weekly" class="nav-btn flex flex-col items-center gap-1 text-slate-400 transition">
+            <i class="fa-solid fa-calendar-days text-lg"></i>
+            <span class="text-[10px] font-medium">កាលវិភាគសប្ដាហ៍</span>
+        </button>
+        <button onclick="switchTab('staff')" id="nav-staff" class="nav-btn flex flex-col items-center gap-1 text-slate-400 transition">
+            <i class="fa-solid fa-users text-lg"></i>
+            <span class="text-[10px] font-medium">បុគ្គលិក</span>
+        </button>
+    </nav>
+
+    <!-- Toast Notification Popup -->
+    <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-2">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-message">ជោគជ័យ</span>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // Initialize Telegram WebApp SDK
+        const tg = window.Telegram ? window.Telegram.WebApp : null;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                document.getElementById('user-greeting').innerText = `សួស្តី, ${tg.initDataUnsafe.user.first_name}!`;
+            }
+        }
+
+        // Fixed Configuration: 7 Desks & 7 Staff Members
+        const DESKS = [
+            { id: 1, name: 'តុ ១', color: 'bg-blue-500' },
+            { id: 2, name: 'តុ ២', color: 'bg-emerald-500' },
+            { id: 3, name: 'តុ ៣', color: 'bg-indigo-500' },
+            { id: 4, name: 'តុ ៤', color: 'bg-amber-500' },
+            { id: 5, name: 'តុ ៥', color: 'bg-rose-500' },
+            { id: 6, name: 'តុ ៦', color: 'bg-teal-500' },
+            { id: 7, name: 'តុ ៧', color: 'bg-purple-500' }
+        ];
+
+        // Default Staff Names
+        const DEFAULT_STAFF = [
+            'បុគ្គលិក ១',
+            'បុគ្គលិក ២',
+            'បុគ្គលិក ៣',
+            'បុគ្គលិក ៤',
+            'បុគ្គលិក ៥',
+            'បុគ្គលិក ៦',
+            'បុគ្គលិក ៧'
+        ];
+
+        // Load Staff from localStorage or default
+        let staffList = JSON.parse(localStorage.getItem('tg_rotation_staff_7')) || DEFAULT_STAFF;
+
+        // Current Selected Date State (YYYY-MM-DD)
+        let selectedDateStr = new Date().toISOString().split('T')[0];
+
+        // Anchor Date for Day Offset Calculation (Fixed Epoch Date)
+        const ANCHOR_DATE = new Date('2026-01-01');
+
+        window.onload = function() {
+            document.getElementById('selected-date').value = selectedDateStr;
+            updateDateHeaderLabel();
+            renderTodayDesks();
+            renderStaffFormInputs();
+            renderWeeklyTable();
+        };
+
+        // --- Core Algorithm for Daily Rotation ---
+        // Calculates daily shift offset based on date difference
+        function getShiftOffsetForDate(dateObj) {
+            const timeDiff = dateObj.getTime() - ANCHOR_DATE.getTime();
+            const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+            // Ensure positive modulus result for past/future dates
+            const offset = ((dayDiff % 7) + 7) % 7;
+            return offset;
+        }
+
+        // Return desk assignment array for a given Date
+        function getAssignmentsForDate(dateObj) {
+            const offset = getShiftOffsetForDate(dateObj);
+            let assignments = [];
+
+            for (let i = 0; i < 7; i++) {
+                // Shift staff circularly: Desk i gets staff (i + offset) % 7
+                const staffIndex = (i + offset) % 7;
+                assignments.push({
+                    desk: DESKS[i],
+                    staffName: staffList[staffIndex],
+                    staffNumber: staffIndex + 1
+                });
+            }
+            return assignments;
+        }
+
+        // --- Tab Navigation ---
+        function switchTab(tabName) {
+            triggerHaptic();
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-blue-600');
+                el.classList.add('text-slate-400');
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${tabName}`);
+            activeNav.classList.remove('text-slate-400');
+            activeNav.classList.add('text-blue-600');
+        }
+
+        // --- Date Picker Logic ---
+        function onDateInputChange() {
+            selectedDateStr = document.getElementById('selected-date').value;
+            updateDateHeaderLabel();
+            renderTodayDesks();
+            triggerHaptic();
+        }
+
+        function changeDate(days) {
+            let current = new Date(selectedDateStr);
+            current.setDate(current.getDate() + days);
+            selectedDateStr = current.toISOString().split('T')[0];
+            document.getElementById('selected-date').value = selectedDateStr;
+            updateDateHeaderLabel();
+            renderTodayDesks();
+            triggerHaptic();
+        }
+
+        function resetToToday() {
+            selectedDateStr = new Date().toISOString().split('T')[0];
+            document.getElementById('selected-date').value = selectedDateStr;
+            updateDateHeaderLabel();
+            renderTodayDesks();
+            triggerHaptic();
+            showToast('ត្រឡប់មកថ្ងៃនេះ');
+        }
+
+        function updateDateHeaderLabel() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const displayEl = document.getElementById('date-khmer-text');
+            const d = new Date(selectedDateStr);
+
+            const options = { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' };
+            const khmerDateStr = d.toLocaleDateString('km-KH', options);
+
+            if (selectedDateStr === todayStr) {
+                displayEl.innerText = `ថ្ងៃនេះ - ${khmerDateStr}`;
+            } else {
+                displayEl.innerText = khmerDateStr;
+            }
+        }
+
+        // --- Render Daily Desk Cards ---
+        function renderTodayDesks() {
+            const container = document.getElementById('desks-container');
+            const d = new Date(selectedDateStr);
+            const assignments = getAssignmentsForDate(d);
+
+            container.innerHTML = assignments.map(item => `
+                <div class="card p-3.5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:border-blue-300 transition">
+                    <div class="flex items-center space-x-3 space-x-reverse">
+                        <div class="w-11 h-11 rounded-2xl ${item.desk.color} text-white font-bold flex flex-col items-center justify-center shadow-md">
+                            <i class="fa-solid fa-desktop text-xs mb-0.5 opacity-80"></i>
+                            <span class="text-xs leading-none">${item.desk.name}</span>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-800">${item.staffName}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">លេខសម្គាល់៖ បុគ្គលិក ${item.staffNumber}</div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium border border-slate-200">
+                        កាតព្វកិច្ច
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        // --- Render Weekly Schedule ---
+        function renderWeeklyTable() {
+            const tbody = document.getElementById('weekly-table-body');
+            const startDate = new Date(selectedDateStr);
+            
+            let html = '';
+            for (let i = 0; i < 7; i++) {
+                let current = new Date(startDate);
+                current.setDate(current.getDate() + i);
+                
+                const dateStr = current.toISOString().split('T')[0];
+                const dayNameStr = current.toLocaleDateString('km-KH', { weekday: 'short', day: 'numeric', month: 'numeric' });
+                const isToday = dateStr === new Date().toISOString().split('T')[0];
+
+                const assignments = getAssignmentsForDate(current);
+
+                html += `
+                    <tr class="${isToday ? 'bg-blue-50/60 font-semibold' : ''}">
+                        <td class="p-2.5 whitespace-nowrap font-medium text-slate-700">
+                            ${dayNameStr} ${isToday ? '<span class="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full ml-1">ថ្ងៃនេះ</span>' : ''}
+                        </td>
+                        ${assignments.map(a => `<td class="p-2.5 text-center text-[11px] whitespace-nowrap text-slate-600">${a.staffName}</td>`).join('')}
+                    </tr>
+                `;
+            }
+            tbody.innerHTML = html;
+        }
+
+        // --- Render Staff Management Form ---
+        function renderStaffFormInputs() {
+            const container = document.getElementById('staff-inputs-container');
+            container.innerHTML = staffList.map((name, index) => `
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    <span class="text-xs font-bold text-slate-500 w-12">តុ/លេខ ${index + 1}:</span>
+                    <input type="text" id="staff-input-${index}" value="${name}" required
+                        class="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            `).join('');
+        }
+
+        // Save Staff Names Handler
+        function saveStaffNames(event) {
+            event.preventDefault();
+            let newNames = [];
+            for (let i = 0; i < 7; i++) {
+                const val = document.getElementById(`staff-input-${i}`).value.trim();
+                newNames.push(val || `បុគ្គលិក ${i + 1}`);
+            }
+
+            staffList = newNames;
+            localStorage.setItem('tg_rotation_staff_7', JSON.stringify(staffList));
+
+            renderTodayDesks();
+            renderWeeklyTable();
+            showToast('បានរក្សាទុកឈ្មោះបុគ្គលិករួចរាល់');
+            triggerHaptic();
+        }
+
+        // --- Share Function ---
+        function shareTodaySchedule() {
+            const d = new Date(selectedDateStr);
+            const khmerDateStr = d.toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            const assignments = getAssignmentsForDate(d);
+
+            let msg = `📋 *កាលវិភាគបង្វិលតុធ្វើការ (៧ តុ)*\n📆 ថ្ងៃ៖ ${khmerDateStr}\n-------------------------\n`;
+            assignments.forEach(a => {
+                msg += `🖥 *${a.desk.name}* ➔ 👤 ${a.staffName}\n`;
+            });
+            msg += `\n_បង្កើតដោយ Telegram Daily Rotation App_`;
+
+            // Copy text to clipboard
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = msg;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+
+            showToast('បានចម្លងកាលវិភាគ! អាច Paste ក្នុង Chat បាន');
+            triggerHaptic();
+        }
+
+        // --- Toast & Haptic Utilities ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+
+        function triggerHaptic() {
+            if (tg && tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+    </script>
+</body>
+</html>
